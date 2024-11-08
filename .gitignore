@@ -11,6 +11,8 @@ npm-debug.*
 *.mobileprovision
 *.orig.*
 web-build/
+expo-pushnotification-template-firebase-adminsdk-6eus6-0b789ae053.json
+google-services.json
 
 # macOS
 .DS_Store

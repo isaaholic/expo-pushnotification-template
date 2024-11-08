@@ -21,7 +21,8 @@
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "com.isaaholic.expopushnotificationtemplate"
+      "package": "com.isaaholic.expopushnotificationtemplate",
+      "googleServicesFile": "./google-services.json"
     },
     "web": {
       "bundler": "metro",
@@ -33,6 +34,15 @@
     ],
     "experiments": {
       "typedRoutes": true
-    }
+    },
+    "extra": {
+      "router": {
+        "origin": false
+      },
+      "eas": {
+        "projectId": "67afc394-fa17-4256-a15d-0347ca0f7402"
+      }
+    },
+    "owner": "isaaholic"
   }
 }

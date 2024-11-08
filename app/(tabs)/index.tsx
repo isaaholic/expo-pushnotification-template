@@ -17,6 +17,27 @@ Notifications.setNotificationHandler({
   }),
 });
 
+async function sendPushNotification(expoPushToken: string) {
+  console.log("Sending push notification...");
+  const message = {
+    to: expoPushToken,
+    sound: "default",
+    title: "Original Title",
+    body: "And here is the body!",
+    data: { someData: "goes here" },
+  };
+
+  await fetch("https://exp.host/--/api/v2/push/send", {
+    method: "POST",
+    headers: {
+      Accept: "application/json",
+      "Accept-encoding": "gzip, deflate",
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(message),
+  });
+}
+
 export default function HomeScreen() {
   const [expoPushToken, setExpoPushToken] = useState("");
   const [channels, setChannels] = useState<Notifications.NotificationChannel[]>(
@@ -29,15 +50,10 @@ export default function HomeScreen() {
   const responseListener = useRef<Notifications.Subscription>();
 
   useEffect(() => {
-    registerForPushNotificationsAsync().then(
-      (token) => token && setExpoPushToken(token)
-    );
+    registerForPushNotificationsAsync()
+      .then((token) => setExpoPushToken(token ?? ""))
+      .catch((error: any) => setExpoPushToken(`${error}`));
 
-    if (Platform.OS === "android") {
-      Notifications.getNotificationChannelsAsync().then((value) =>
-        setChannels(value ?? [])
-      );
-    }
     notificationListener.current =
       Notifications.addNotificationReceivedListener((notification) => {
         setNotification(notification);
@@ -83,6 +99,12 @@ export default function HomeScreen() {
             await schedulePushNotification();
           }}
         />
+        <Button
+          title="Press to Send Push Notification"
+          onPress={async () => {
+            await sendPushNotification(expoPushToken);
+          }}
+        />
       </ThemedView>
     </ParallaxScrollView>
   );
@@ -99,11 +121,14 @@ async function schedulePushNotification() {
   });
 }
 
-async function registerForPushNotificationsAsync() {
-  let token;
+function handleRegistrationError(errorMessage: string) {
+  alert(errorMessage);
+  throw new Error(errorMessage);
+}
 
+async function registerForPushNotificationsAsync() {
   if (Platform.OS === "android") {
-    await Notifications.setNotificationChannelAsync("default", {
+    Notifications.setNotificationChannelAsync("default", {
       name: "default",
       importance: Notifications.AndroidImportance.MAX,
       vibrationPattern: [0, 250, 250, 250],
@@ -120,33 +145,30 @@ async function registerForPushNotificationsAsync() {
       finalStatus = status;
     }
     if (finalStatus !== "granted") {
-      alert("Failed to get push token for push notification!");
+      handleRegistrationError(
+        "Permission not granted to get push token for push notification!"
+      );
       return;
     }
-    // Learn more about projectId:
-    // https://docs.expo.dev/push-notifications/push-notifications-setup/#configure-projectid
-    // EAS projectId is used here.
+    const projectId =
+      Constants?.expoConfig?.extra?.eas?.projectId ??
+      Constants?.easConfig?.projectId;
+    if (!projectId) {
+      handleRegistrationError("Project ID not found");
+    }
     try {
-      const projectId =
-        Constants?.expoConfig?.extra?.eas?.projectId ??
-        Constants?.easConfig?.projectId;
-      if (!projectId) {
-        throw new Error("Project ID not found");
-      }
-      token = (
+      const pushTokenString = (
         await Notifications.getExpoPushTokenAsync({
           projectId,
         })
       ).data;
-      console.log(token);
-    } catch (e) {
-      token = `${e}`;
+      return pushTokenString;
+    } catch (e: unknown) {
+      handleRegistrationError(`${e}`);
     }
   } else {
-    alert("Must use physical device for Push Notifications");
+    handleRegistrationError("Must use physical device for push notifications");
   }
-
-  return token;
 }
 
 const styles = StyleSheet.create({
